@@ -1,0 +1,15 @@
+# dsh-openai-api-provider bundle patch: one gateway route named `gateway`.
+# Base URL and key resolve through the credentials service, then the launch
+# environment. Override `provider`/`*Env` in a profile patch for other gateways.
+- insert:
+    - id: openai-api-provider
+      name: "dsh-openai-api-provider"
+      config:
+        provider: gateway
+        displayName: OpenAI API Gateway
+        baseURLEnv: OPENAI_API_EXTENSION_BASE_URL
+        apiKeyEnv: OPENAI_API_EXTENSION_API_KEY
+        retryPolicy:
+          mode: normal
+          maxRetries: 10
+          retryableCodes: [EMPTY_RESPONSE, RATE_LIMIT, SERVER, TIMEOUT, TRANSPORT]

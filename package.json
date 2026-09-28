@@ -1,0 +1,55 @@
+{
+	"name": "dsh-openai-api-provider",
+	"version": "0.1.0",
+	"description": "OpenAI-compatible Responses gateway as a DeepSeek Harness provider route with a live /models catalog and in-session refresh",
+	"type": "module",
+	"main": "index.js",
+	"exports": {
+		".": "./index.js",
+		"./catalog": "./lib/catalog.js",
+		"./cordis.patch.yml": "./cordis.patch.yml",
+		"./package.json": "./package.json"
+	},
+	"files": [
+		"index.js",
+		"lib/",
+		"cordis.patch.yml",
+		"README.md",
+		"LICENSE"
+	],
+	"dsh": {
+		"bundle": {
+			"patch": "./cordis.patch.yml"
+		}
+	},
+	"scripts": {
+		"test": "node --test test/*.test.mjs"
+	},
+	"keywords": [
+		"deepseek",
+		"deepseek-harness",
+		"dsh",
+		"cordis",
+		"openai",
+		"llm-provider"
+	],
+	"author": "Xiangzhe",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/xz-dev/dsh-openai-api-provider.git"
+	},
+	"engines": {
+		"node": ">=22"
+	},
+	"peerDependencies": {
+		"@deepseek-ai/cordis": "4.0.4",
+		"@deepseek-ai/dsh-credentials": "0.1.7-rc.2",
+		"@deepseek-ai/dsh-home-paths": "0.1.7-rc.2",
+		"@deepseek-ai/dsh-launch-environment": "0.1.7-rc.2",
+		"@deepseek-ai/dsh-llm": "0.1.7-rc.2",
+		"@deepseek-ai/dsh-llm-pi-ai": "0.1.7-rc.2",
+		"@deepseek-ai/schemastery": "3.18.4",
+		"@earendil-works/pi-ai": "0.85.1"
+	}
+}
