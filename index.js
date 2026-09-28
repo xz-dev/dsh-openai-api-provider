@@ -27,7 +27,9 @@ import { openAIResponsesApi } from "@earendil-works/pi-ai/api/openai-responses.l
 import { fetchCatalog, normalizeBaseUrl, readCache, redact, toPiModels, writeCache } from "./lib/catalog.js";
 
 export const name = "dsh-openai-api-provider";
-export const inject = ["llm"];
+// credentials: apply waits for the service so the startup base URL/key lookup
+// does not race its async init and silently fall back to the environment.
+export const inject = ["llm", "credentials"];
 
 export const Config = schema.object({
 	provider: schema.string().min(1).default("gateway").description("Provider route id models are addressed by (route/model)."),
@@ -173,6 +175,7 @@ export async function apply(ctx, config) {
 		(state.inFlight ??= (async () => {
 			let key;
 			try {
+				state.baseUrl ??= normalizeBaseUrl(cfg.baseURL ?? (await lookup(ctx, cfg.baseURLEnv)));
 				if (state.baseUrl === undefined) throw new Error(`no base URL; set baseURL or ${cfg.baseURLEnv}`);
 				key = await resolveApiKey(provider);
 				const signal = timeoutMs ? AbortSignal.any([lifetime.signal, AbortSignal.timeout(timeoutMs)]) : lifetime.signal;

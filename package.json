@@ -1,6 +1,6 @@
 {
 	"name": "dsh-openai-api-provider",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "OpenAI-compatible Responses gateway as a DeepSeek Harness provider route with a live /models catalog and in-session refresh",
 	"type": "module",
 	"main": "index.js",

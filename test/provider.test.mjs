@@ -4,7 +4,7 @@ import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { apply } from "../index.js";
+import { apply, inject } from "../index.js";
 import { mapCatalog, mapRow, readCache, writeCache } from "../lib/catalog.js";
 
 const KEY = "sk-test-secret-123";
@@ -61,7 +61,7 @@ async function stubGateway() {
 	return { state, url: `http://127.0.0.1:${server.address().port}/v1`, close: () => new Promise((r) => server.close(r)) };
 }
 
-function fakeCtx(env) {
+function fakeCtx(env, credentials) {
 	const events = { replace: 0, registered: undefined, commands: new Map(), warnings: [], disposers: [] };
 	const ctx = {
 		logger: () => ({ warn: (m) => events.warnings.push(m), info() {}, error() {} }),
@@ -70,7 +70,12 @@ function fakeCtx(env) {
 			if (typeof d === "function") events.disposers.push(d);
 		},
 		inject: (_names, fn) => fn(ctx),
-		get: (name) => (name === "launchEnvironment" ? { get: (k) => (env[k] === undefined ? undefined : { value: env[k] }) } : undefined),
+		get: (name) =>
+			name === "launchEnvironment"
+				? { get: (k) => (env[k] === undefined ? undefined : { value: env[k] }) }
+				: name === "credentials" && credentials
+					? { resolve: async (ref) => (credentials[ref.name ?? ref] === undefined ? undefined : { value: credentials[ref.name ?? ref] }) }
+					: undefined,
 		commands: { register: (def) => events.commands.set(def.name, def) },
 		llm: {
 			registerAdapter(routes, adapter) {
@@ -103,6 +108,23 @@ test("startup without cache fetches, registers the route, and describes models",
 		assert.deepEqual(info.reasoning.efforts.map((e) => e.id), ["minimal", "low", "medium", "high"]);
 		assert.equal(adapter.providerRetryPolicy("gateway").mode, "normal");
 		assert.ok(!(await readFile(join(dir, "c.json"), "utf8")).includes(KEY), "cache holds no secret");
+	} finally {
+		dispose();
+		await gw.close();
+		await rm(dir, { recursive: true, force: true });
+	}
+});
+
+test("declares credentials in inject; base URL and key come from the credentials service alone", async () => {
+	assert.ok(inject.includes("credentials"), "apply must wait for the credentials service");
+	const gw = await stubGateway();
+	const dir = await mkdtemp(join(tmpdir(), "oap-"));
+	const { ctx, events, dispose } = fakeCtx({}, { OPENAI_API_EXTENSION_BASE_URL: gw.url, OPENAI_API_EXTENSION_API_KEY: KEY });
+	try {
+		await apply(ctx, { cacheFile: join(dir, "c.json") });
+		const listed = await events.registered.adapter.listModels("gateway");
+		assert.deepEqual(listed.map((m) => m.id), ["m-reason"]);
+		assert.equal(gw.state.auths[0], `Bearer ${KEY}`);
 	} finally {
 		dispose();
 		await gw.close();
